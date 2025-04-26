@@ -29,7 +29,7 @@ const LOGICAL_SECTION_ELEMENTS = ['div', 'section', 'article', 'main'] as const;
 const elDepth = (el: Root | ElementContent | RootContent, currentDepth = 0): number => {
     if (el.type !== 'element' && el.type !== 'root') return currentDepth + 1;
     if (el.children.length === 0) return currentDepth + 1;
-    return Math.max(...el.children.map((child) => elDepth(child, currentDepth + 1)));
+    return Math.max(...el.children.map((child: ElementContent) => elDepth(child, currentDepth + 1)));
 };
 
 /**
@@ -78,9 +78,8 @@ function wrapInner(toBeWrapped: ElementContent, wrapper: Element) {
  * @param el An element to trim whitespace from.
  * @returns A new element with whitespace trimmed.
  */
-function removeStartAndEndWhitespace(el: Element) {
-    // Filtering isn't particularly efficient, but it gets the job done.
-    const newChildren = el.children.filter((child, idx) => {
+function removeStartAndEndWhitespace(el: Element): Element {
+    const newChildren = el.children.filter((child: ElementContent, idx: number) => {
         if (child.type !== 'text') return true;
         if (idx != 0 && idx != el.children.length - 1) return true;
         return !child.value.match(/^\s+$/);
@@ -142,10 +141,19 @@ export const findRef = (fn: Element, tree: Root | Element) => {
  */
 export function isValidFootnote(el: Element, tree: Nodes) {
     const id = `${el.properties['id']}`;
-    const idValid = /fn[-\:]\d+$/.test(id);
+    const idValid = /fn[-:][\da-zA-Z]+$/.test(id);
     const hasParent =
         select(`[data-footnotes] [id="${id}"], .footnotes [id="${id}"]`, tree) != undefined;
     const hasRef = select(`[href="#${id}"]`, tree) != undefined;
+
+    // Add "annotation" class to citation if ID is letter-based
+    if (/[a-zA-Z]+$/.test(id)) {
+        const citation = select(`[href="#${id}"]`, tree);
+        if (citation && citation.properties) {
+            citation.properties.class = (citation.properties.class || '') + ' annotation';
+        }
+    }
+
     return idValid && hasParent && hasRef;
 }
 
@@ -164,10 +172,17 @@ export function convertFootnoteToSidenote(footnoteEl: Element, fnNum: string) {
         ? ([h('p')] as ElementContent[]).concat(trimmedFn.children)
         : trimmedFn.children;
     const firstChild = chilluns[0] as Element;
-    firstChild.children.unshift(h('sup', { class: 'Sidenote-number' }, fnNum + '\u2009'));
-    return h('aside.Sidenote', { ...footnoteEl.properties, role: 'doc-footnote' }, [
+    firstChild.children.unshift(h('sup', { class: 'Sidenote-number' }, [fnNum + '\u2009']));
+
+    // Add "annotation" class if ID is letter-based
+    const isLetterId = /[a-zA-Z]+$/.test(`${footnoteEl.properties.id}`);
+    const sidenoteClass = isLetterId ? 'Sidenote annotation' : 'Sidenote';
+
+    return h(`aside.${sidenoteClass}`, { ...footnoteEl.properties, role: 'doc-footnote' }, [
         '\n ',
-        ...chilluns.map((child) => wrapInner(child, h('small', { class: 'Sidenote-small' }, []))),
+        ...chilluns.map((child: ElementContent) =>
+            wrapInner(child, h('small', { class: 'Sidenote-small' }, [])),
+        ),
         '\n ',
     ]);
 }
