@@ -1,5 +1,5 @@
 import { matches, select, selectAll } from 'hast-util-select';
-import type { Element, Nodes, Root, ElementContent, RootContent } from 'hast';
+import type { Element, Root, ElementContent, RootContent } from 'hast';
 import { h } from 'hastscript';
 
 //
@@ -139,7 +139,7 @@ export const findRef = (fn: Element, tree: Root | Element) => {
  * @returns True if this is a footnote with a valid ID, and a reference pointing to it, and is
  *          located in the footnotes section.
  */
-export function isValidFootnote(el: Element, tree: Nodes) {
+export function isValidFootnote(el: Element, tree: Root | Element) {
     const id = `${el.properties['id']}`;
     const idValid = /fn[-:][\da-zA-Z]+$/.test(id);
     const hasParent =
@@ -166,7 +166,7 @@ export function isValidFootnote(el: Element, tree: Nodes) {
  * @param fnNum The number of the footnote.
  * @returns A new HAST element.
  */
-export function convertFootnoteToSidenote(footnoteEl: Element, fnNum: string) {
+export function convertFootnoteToSidenote(footnoteEl: Element, fnNum: number | string) {
     const trimmedFn = removeStartAndEndWhitespace(footnoteEl);
     const chilluns = !isElement(trimmedFn.children[0])
         ? ([h('p')] as ElementContent[]).concat(trimmedFn.children)

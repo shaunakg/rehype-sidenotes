@@ -34,7 +34,7 @@ declare module 'hast' {
 declare module 'hastscript' {
     import { Element } from 'hast';
 
-    export function h(tagName: string, properties?: Record<string, any>, children?: any[]): Element;
+    export function h(tagName: string, properties?: any, children?: any): Element;
 }
 
 declare module 'hast-util-select' {
